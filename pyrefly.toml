@@ -1,0 +1,7 @@
+# Pyrefly configuration for Freelance Rate & Demand Predictor
+python-interpreter-path = "c:/Users/Elite computers/Projects/freelance_rate_predictor/backend/venv/Scripts/python.exe"
+
+[project]
+name = "freelance_rate_predictor"
+# Point the source root directly to the backend folder
+source_root = "backend"

@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/venv/
+venv/
+.venv/
+
+# Next.js build output
+.next/
+frontend/.next/
+out/
+
+# Python / Cache / Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment / Local Databases / MLflow
+.env
+*.env
+*.db
+mlruns/
+postgres_data/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,59 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: freelance_predictor_db
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=freelance_predictor
+      - POSTGRES_USER=postgres
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: freelance_predictor_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: freelance_predictor_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql://postgres@db:5432/freelance_predictor
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: freelance_predictor_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+
+networks:
+  app-network:
+    driver: bridge
