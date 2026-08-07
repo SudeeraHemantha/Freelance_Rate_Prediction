@@ -417,10 +417,36 @@
   - `[OK]` Next.js production build compiled cleanly with zero errors.
   - `[OK]` All 7/7 End-to-End Enterprise System Tests **PASSED** cleanly.
 
+
+---
+
+### Entry 7: Permanent Hosting Architecture Finalization (Vercel + Render Split Setup)
+**Date & Time:** 2026-08-07T15:15:00+05:30  
+**Phase:** Cloud Infrastructure & Deployment Configuration  
+**Status:** COMPLETED & VERIFIED
+
+#### 1. Environment Variable Blueprint Mapping
+- Established `.env.example` blueprints at repository root, `frontend/`, and `backend/`:
+  - **Frontend (`NEXT_PUBLIC_API_URL`):** Points to Render FastAPI backend (`https://freelance-rate-predictor-backend.onrender.com`).
+  - **Backend (`DATABASE_URL`, `REDIS_URL`, `CORS_ORIGINS`, `API_KEY`, `JWT_SECRET`):** Render managed PostgreSQL, Redis, security credentials, and CORS whitelist.
+
+#### 2. Dynamic API URL & Port Resolution
+- **Frontend ([frontend/app/page.tsx](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/frontend/app/page.tsx)):** Replaced hardcoded `http://localhost:8000` references with dynamic `process.env.NEXT_PUBLIC_API_URL` base URL with fallback for local dev.
+- **Backend Dockerfiles ([backend/Dockerfile](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/backend/Dockerfile) & [docker/Dockerfile.backend](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/docker/Dockerfile.backend)):** Updated start CMD to `CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]` ensuring automatic compatibility with Render's dynamic `$PORT` environment variable.
+
+#### 3. CORS & Vercel Preview Deployments Setup
+- Updated CORS Middleware in [backend/app/main.py](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/backend/app/main.py) with `allow_origin_regex=r"https://.*\.vercel\.app"` ensuring Vercel production and preview branch deployments can make secure, authenticated cross-origin REST requests without pre-flight blocks.
+
+#### 4. Monorepo Vercel & Render Verification
+- Created root [vercel.json](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/vercel.json) and updated [frontend/vercel.json](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/frontend/vercel.json).
+- Compiled production Next.js build (`4/4 static pages prerendered successfully`).
+- Ran complete 7/7 E2E system integration test suite (`All 7 tests PASSED`).
+
 ---
 
 ## [TECH DEBT - REMINDER TO CORRECT LATER]
 - Temporary sys.path path-hack injected in backend/scraper/ML/API scripts to bypass workspace root mapping issue. Must refactor to proper package installation/editable mode (pip install -e .) before production deployment/hosting.
+
 
 ---
 

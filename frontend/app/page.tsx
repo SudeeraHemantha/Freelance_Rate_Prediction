@@ -88,7 +88,8 @@ export default function PricingCalculatorPage() {
         headers["X-API-Key"] = apiKey
       }
 
-      const response = await fetch("http://localhost:8000/api/v1/predict", {
+      const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "")
+      const response = await fetch(`${apiBaseUrl}/api/v1/predict`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify(data),
@@ -110,7 +111,7 @@ export default function PricingCalculatorPage() {
     } catch (err: any) {
       console.error("Predict query failed:", err)
       setBackendError(
-        err.message || "Could not connect to FastAPI server. Please verify backend is running on port 8000."
+        err.message || "Could not connect to FastAPI server. Please verify backend service availability."
       )
     } finally {
       setLoading(false)
@@ -120,7 +121,8 @@ export default function PricingCalculatorPage() {
   // Handle Token Generation Button
   const handleGenerateToken = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/token", { method: "POST" })
+      const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "")
+      const res = await fetch(`${apiBaseUrl}/api/v1/token`, { method: "POST" })
       if (res.ok) {
         const data = await res.json()
         setTokenStatus(data.access_token)

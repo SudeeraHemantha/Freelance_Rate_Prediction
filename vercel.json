@@ -2,7 +2,6 @@
   "version": 2,
   "name": "freelance-rate-predictor-frontend",
   "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next"
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/.next"
 }
-

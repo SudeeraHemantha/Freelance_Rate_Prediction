@@ -87,10 +87,12 @@ cors_origins_list = [origin.strip() for origin in settings.CORS_ORIGINS.split(",
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins_list if cors_origins_list else ["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 @app.middleware("http")
