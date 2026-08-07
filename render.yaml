@@ -3,7 +3,7 @@ services:
   - type: web
     name: freelance-rate-predictor-backend
     env: docker
-    dockerfilePath: ./docker/Dockerfile.backend
+    dockerfilePath: Dockerfile
     context: ./backend
     plan: free
     region: oregon
