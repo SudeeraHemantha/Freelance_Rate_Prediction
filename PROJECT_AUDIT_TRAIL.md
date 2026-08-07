@@ -368,6 +368,57 @@
 
 ---
 
+### Phase 11: Take-Home vs. Real Cost Breakdown & Multi-Currency Selector
+
+#### 1. Multi-Currency Schema & FastAPI Pipeline Extension (`backend/app/schemas/predict.py` & `api/v1/predict.py`)
+- Added multi-currency conversion support (`USD`, `EUR`, `GBP`, `LKR`).
+- Implemented real-time currency conversion rates (USD: 1.0, EUR: 0.92, GBP: 0.78, LKR: 305.5).
+- Computed `take_home_breakdown` financial ratio metrics:
+  - **Net Income:** 65% (Personal salary take-home)
+  - **Tax Buffer:** 20% (Income & self-employment tax reserve)
+  - **Tool Overheads:** 10% (SaaS, cloud hosting, hardware amortisation)
+  - **Non-Billable Time:** 5% (Administrative overhead & proposal time)
+
+#### 2. Database Schema Extension & Logging (`backend/app/models/prediction_log.py`)
+- Extended `prediction_logs` PostgreSQL table schema to record `currency` and `predicted_payout` attributes.
+- Updated asynchronous `log_prediction_background` worker task.
+
+#### 3. Frontend UI Component & Visual Allocation Bar (`frontend/components/take-home-breakdown.tsx` & `app/page.tsx`)
+- Created [take-home-breakdown.tsx](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/frontend/components/take-home-breakdown.tsx) featuring a multi-segment progress bar and 4-grid category metric cards.
+- Integrated currency selector dropdown (`USD`, `EUR`, `GBP`, `LKR`) in [frontend/app/page.tsx](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/frontend/app/page.tsx).
+
+#### 4. Verification & E2E Testing (`backend/tests/test_system_e2e.py`)
+- Added Test 7 for EUR multi-currency conversion and take-home financial ratio validation.
+- Executed `python backend/tests/test_system_e2e.py`:
+  - **All 7/7 End-to-End Integration Tests PASSED cleanly.**
+
+---
+
+### Phase 12: Production Hosting & Infrastructure Deployment Configuration
+
+#### 1. Backend Infrastructure Blueprint (`render.yaml`)
+- Created Infrastructure as Code blueprint [render.yaml](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/render.yaml) configuring Render deployment:
+  - **Web Service:** `freelance-rate-predictor-backend` (FastAPI + LightGBM ML model running in `docker/Dockerfile.backend`).
+  - **Database Service:** Managed PostgreSQL (`freelance-predictor-db`).
+  - **Cache Service:** Managed Redis (`freelance-predictor-redis`).
+
+#### 2. Frontend Hosting Configuration (`frontend/vercel.json`)
+- Created Vercel deployment manifest [frontend/vercel.json](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/frontend/vercel.json) setting up Next.js production builds and `NEXT_PUBLIC_API_URL` environment binding.
+
+#### 3. Production Environment & CORS Hardening (`backend/app/main.py` & `core/config.py`)
+- Configured dynamic `CORS_ORIGINS` settings in `config.py` and `main.py` permitting Vercel frontend domains to call the production FastAPI prediction backend securely.
+
+#### 4. Pre-Flight Deployment Automation (`scripts/verify_deployment_build.py`)
+- Created automated pre-flight build verification script [scripts/verify_deployment_build.py](file:///c:/Users/Elite%20computers/Projects/freelance_rate_predictor/scripts/verify_deployment_build.py).
+- Executed `python scripts/verify_deployment_build.py`:
+  - `[OK]` `render.yaml` Render Blueprint manifest verified.
+  - `[OK]` `frontend/vercel.json` Vercel configuration verified.
+  - `[OK]` `docker/Dockerfile.backend` verified.
+  - `[OK]` Next.js production build compiled cleanly with zero errors.
+  - `[OK]` All 7/7 End-to-End Enterprise System Tests **PASSED** cleanly.
+
+---
+
 ## [TECH DEBT - REMINDER TO CORRECT LATER]
 - Temporary sys.path path-hack injected in backend/scraper/ML/API scripts to bypass workspace root mapping issue. Must refactor to proper package installation/editable mode (pip install -e .) before production deployment/hosting.
 

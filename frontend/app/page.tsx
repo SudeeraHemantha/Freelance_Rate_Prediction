@@ -13,6 +13,7 @@ import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, InfoBadge } from "@/components/ui/tooltip"
 import { FeatureGuideModal } from "@/components/feature-guide-modal"
+import { TakeHomeBreakdown, TakeHomeBreakdownData } from "@/components/take-home-breakdown"
 import RechartsVisualizer from "@/components/recharts-visualizer"
 
 const calculatorSchema = z.object({
@@ -22,6 +23,7 @@ const calculatorSchema = z.object({
   complexity_level: z.string().min(1, "Complexity is required"),
   estimated_hours: z.number().gt(0, "Estimated hours must be greater than 0"),
   urgency: z.string().min(1, "Urgency level is required"),
+  currency: z.string().min(1, "Currency is required"),
   has_auth: z.boolean(),
   has_third_party_apis: z.boolean(),
 })
@@ -32,6 +34,9 @@ export default function PricingCalculatorPage() {
   const [loading, setLoading] = useState(false)
   const [predictedRate, setPredictedRate] = useState<number>(0)
   const [predictedPayout, setPredictedPayout] = useState<number>(0)
+  const [currencySymbol, setCurrencySymbol] = useState<string>("$")
+  const [currencyCode, setCurrencyCode] = useState<string>("USD")
+  const [takeHomeBreakdown, setTakeHomeBreakdown] = useState<TakeHomeBreakdownData | undefined>(undefined)
   const [executionTime, setExecutionTime] = useState<number>(0)
   const [backendError, setBackendError] = useState<string | null>(null)
   
@@ -57,21 +62,22 @@ export default function PricingCalculatorPage() {
       complexity_level: "High",
       estimated_hours: 40,
       urgency: "Urgent",
+      currency: "USD",
       has_auth: true,
       has_third_party_apis: true,
     },
   })
 
-  // Watch variables to update visualizer baseline dynamically
+  // Watch variables
   const watchedTech = watch("primary_tech")
   const watchedAuth = watch("has_auth")
   const watchedThirdParty = watch("has_third_party_apis")
+  const watchedCurrency = watch("currency")
 
   const onSubmit = async (data: CalculatorValues) => {
     setLoading(true)
     setBackendError(null)
     try {
-      // Build request headers with security credentials
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       }
@@ -97,6 +103,9 @@ export default function PricingCalculatorPage() {
       const resData = await response.json()
       setPredictedRate(parseFloat(resData.predicted_rate))
       setPredictedPayout(parseFloat(resData.predicted_payout))
+      setCurrencySymbol(resData.currency_symbol || "$")
+      setCurrencyCode(resData.currency || "USD")
+      setTakeHomeBreakdown(resData.take_home_breakdown)
       setExecutionTime(resData.execution_time_ms)
     } catch (err: any) {
       console.error("Predict query failed:", err)
@@ -131,6 +140,7 @@ export default function PricingCalculatorPage() {
         complexity_level: "High",
         estimated_hours: 45,
         urgency: "Urgent",
+        currency: watchedCurrency || "USD",
         has_auth: true,
         has_third_party_apis: true,
       })
@@ -142,6 +152,7 @@ export default function PricingCalculatorPage() {
         complexity_level: "Medium",
         estimated_hours: 30,
         urgency: "Medium",
+        currency: watchedCurrency || "USD",
         has_auth: true,
         has_third_party_apis: false,
       })
@@ -153,6 +164,7 @@ export default function PricingCalculatorPage() {
         complexity_level: "High",
         estimated_hours: 60,
         urgency: "High",
+        currency: watchedCurrency || "USD",
         has_auth: false,
         has_third_party_apis: true,
       })
@@ -163,6 +175,7 @@ export default function PricingCalculatorPage() {
   const handleClearResults = () => {
     setPredictedRate(0)
     setPredictedPayout(0)
+    setTakeHomeBreakdown(undefined)
     setExecutionTime(0)
     setBackendError(null)
   }
@@ -171,8 +184,11 @@ export default function PricingCalculatorPage() {
   const handleExportReport = () => {
     const reportData = {
       timestamp: new Date().toISOString(),
-      predicted_rate_usd: predictedRate,
-      predicted_payout_usd: predictedPayout,
+      currency: currencyCode,
+      currency_symbol: currencySymbol,
+      predicted_rate: predictedRate,
+      predicted_payout: predictedPayout,
+      take_home_breakdown: takeHomeBreakdown,
       execution_latency_ms: executionTime,
       form_parameters: watch(),
     }
@@ -180,7 +196,7 @@ export default function PricingCalculatorPage() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reportData, null, 2))
     const downloadAnchor = document.createElement("a")
     downloadAnchor.setAttribute("href", dataStr)
-    downloadAnchor.setAttribute("download", `pricing_report_${Date.now()}.json`)
+    downloadAnchor.setAttribute("download", `pricing_report_${currencyCode}_${Date.now()}.json`)
     document.body.appendChild(downloadAnchor)
     downloadAnchor.click()
     downloadAnchor.remove()
@@ -218,6 +234,14 @@ export default function PricingCalculatorPage() {
     { label: "Urgent/Rush Delivery", value: "Urgent" },
   ]
 
+  // Currency Options
+  const currencyOptions = [
+    { label: "USD ($)", value: "USD" },
+    { label: "EUR (€)", value: "EUR" },
+    { label: "GBP (£)", value: "GBP" },
+    { label: "LKR (Rs.)", value: "LKR" },
+  ]
+
   return (
     <main className="max-w-6xl mx-auto px-4 py-12">
       {/* Feature Guide Modal */}
@@ -231,7 +255,6 @@ export default function PricingCalculatorPage() {
             LightGBM ML Engine v1.0
           </div>
 
-          {/* Interactive Feature Guide Button */}
           <Tooltip content="Opens interactive guide explaining every button and action trigger in detail." position="bottom">
             <button
               onClick={() => setIsGuideOpen(true)}
@@ -241,7 +264,6 @@ export default function PricingCalculatorPage() {
             </button>
           </Tooltip>
 
-          {/* Interactive Token Generation Button */}
           <Tooltip content="Requests a signed JWT Bearer Token from POST /api/v1/token to authenticate predictions." position="bottom">
             <button
               onClick={handleGenerateToken}
@@ -301,14 +323,24 @@ export default function PricingCalculatorPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                {/* Platform select */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider flex items-center">
-                    Freelance Platform
-                    <InfoBadge text="Select target marketplace. Base hourly rates vary by platform distribution." />
-                  </label>
-                  <Select options={platformOptions} {...register("platform")} />
-                  {errors.platform && <p className="text-red-400 text-xs">{errors.platform.message}</p>}
+                {/* Platform & Currency Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider flex items-center">
+                      Platform
+                      <InfoBadge text="Select target marketplace. Base hourly rates vary by platform distribution." />
+                    </label>
+                    <Select options={platformOptions} {...register("platform")} />
+                    {errors.platform && <p className="text-red-400 text-xs">{errors.platform.message}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider flex items-center">
+                      Currency
+                      <InfoBadge text="Converts predictions into USD ($), EUR (€), GBP (£), or LKR (Rs.)." />
+                    </label>
+                    <Select options={currencyOptions} {...register("currency")} />
+                  </div>
                 </div>
 
                 {/* Tech select */}
@@ -453,8 +485,9 @@ export default function PricingCalculatorPage() {
                     <div>
                       <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Estimated Payout</span>
                       <div className="text-4xl md:text-5xl font-black text-white mt-1">
-                        ${predictedPayout.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        <span className="text-lg font-normal text-zinc-500 ml-1">USD</span>
+                        {currencySymbol}
+                        {predictedPayout.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className="text-lg font-normal text-zinc-500 ml-1">{currencyCode}</span>
                       </div>
                     </div>
                     <div className="px-3 py-1.5 rounded-lg bg-zinc-900 text-xs border border-white/5 flex flex-col items-end">
@@ -466,7 +499,7 @@ export default function PricingCalculatorPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 rounded-xl bg-zinc-950/40 border border-white/5">
                       <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Hourly rate Equivalent</span>
-                      <div className="text-2xl font-bold text-white mt-1">${predictedRate.toFixed(2)}/hr</div>
+                      <div className="text-2xl font-bold text-white mt-1">{currencySymbol}{predictedRate.toFixed(2)}/hr</div>
                     </div>
                     <div className="p-4 rounded-xl bg-zinc-950/40 border border-white/5">
                       <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Job Complexity</span>
@@ -496,6 +529,16 @@ export default function PricingCalculatorPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Take-Home vs. Real Cost Breakdown Component */}
+          {predictedRate > 0 && (
+            <TakeHomeBreakdown
+              totalPayout={predictedPayout}
+              currencySymbol={currencySymbol}
+              currencyCode={currencyCode}
+              breakdown={takeHomeBreakdown}
+            />
+          )}
 
           {/* Recharts Analytics display */}
           <RechartsVisualizer predictedRate={predictedRate} techStack={watchedTech} />

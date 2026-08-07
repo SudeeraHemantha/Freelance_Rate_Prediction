@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     # Rate Limiting Settings
     RATE_LIMIT_PER_MINUTE: str = "20/minute"
 
+    # CORS Settings
+    CORS_ORIGINS: str = Field(
+        default="*",
+        validation_alias="CORS_ORIGINS"
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

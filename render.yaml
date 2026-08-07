@@ -1,0 +1,45 @@
+services:
+  # FastAPI Machine Learning Backend Web Service
+  - type: web
+    name: freelance-rate-predictor-backend
+    env: docker
+    dockerfilePath: ./docker/Dockerfile.backend
+    context: ./backend
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: API_KEY
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: freelance-predictor-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: freelance-predictor-redis
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: "https://freelance-rate-predictor.vercel.app,http://localhost:3000"
+
+  # Managed Redis Cache Service
+  - type: redis
+    name: freelance-predictor-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  # Managed PostgreSQL Database Service
+  - name: freelance-predictor-db
+    databaseName: freelance_predictor
+    user: postgres
+    plan: free
+    region: oregon

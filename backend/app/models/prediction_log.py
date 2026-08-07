@@ -14,6 +14,8 @@ class PredictionLog(Base):
     complexity_level: Mapped[str] = mapped_column(String(50), nullable=False)
     estimated_hours: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
     predicted_rate: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    predicted_payout: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
+    currency: Mapped[str] = mapped_column(String(10), default="USD", server_default="USD")
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), 
@@ -29,5 +31,5 @@ class PredictionLog(Base):
     def __repr__(self) -> str:
         return (
             f"<PredictionLog(id={self.id}, tech='{self.primary_tech}', "
-            f"predicted_rate={self.predicted_rate})>"
+            f"predicted_rate={self.predicted_rate}, currency='{self.currency}')>"
         )

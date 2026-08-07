@@ -84,7 +84,23 @@ def run_system_e2e_tests():
     assert fe_resp.status_code == 200, f"Frontend check failed with status {fe_resp.status_code}"
     logger.info("Test 6 PASSED: Next.js Frontend Dashboard active at http://localhost:3000.")
 
-    logger.info("=== All 6 End-to-End Enterprise System Tests PASSED Successfully! ===")
+    # 7. Multi-Currency & Take-Home Financial Breakdown Verification
+    logger.info("Test 7: Verifying Multi-Currency Conversion (EUR) & Financial Breakdown...")
+    eur_payload = {**payload, "currency": "EUR"}
+    eur_resp = requests.post(f"{backend_url}/api/v1/predict", json=eur_payload, headers=headers, timeout=5)
+    assert eur_resp.status_code == 200, f"EUR prediction failed: {eur_resp.text}"
+    eur_data = eur_resp.json()
+    assert eur_data["currency"] == "EUR"
+    assert eur_data["currency_symbol"] == "€"
+    assert "take_home_breakdown" in eur_data
+    breakdown = eur_data["take_home_breakdown"]
+    assert float(breakdown["net_income"]) > 0
+    assert float(breakdown["tax_buffer"]) > 0
+    assert float(breakdown["tool_overheads"]) > 0
+    assert float(breakdown["non_billable_time"]) > 0
+    logger.info(f"Test 7 PASSED: EUR Payout = €{eur_data['predicted_payout']} | Net Income = €{breakdown['net_income']} (65%).")
+
+    logger.info("=== All 7 End-to-End Enterprise System Tests PASSED Successfully! ===")
 
 
 if __name__ == "__main__":
