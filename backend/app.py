@@ -1,6 +1,12 @@
 import os
 import sys
-import spaces
+try:
+    import spaces
+    gpu_decorator = spaces.GPU
+except Exception:
+    def gpu_decorator(func):
+        return func
+
 import gradio as gr
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -18,8 +24,8 @@ os.environ.setdefault("CORS_ORIGINS", "*")
 from app.main import app as fastapi_app
 from app.api.v1 import predict_router
 
-# Define a ZeroGPU-compatible prediction function for Gradio & Hugging Face
-@spaces.GPU
+# Define prediction function for Gradio interface
+@gpu_decorator
 def predict_gig_payout(platform: str, primary_tech: str, complexity_level: str, estimated_hours: float, urgency: str, has_auth: bool, has_apis: bool):
     """ZeroGPU inference function for Gradio interface."""
     try:
