@@ -24,8 +24,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_squared_error, r2_score
 from lightgbm import LGBMRegressor
 import joblib
-import mlflow
-import mlflow.sklearn
+
+# Optional MLflow import
+try:
+    import mlflow
+    import mlflow.sklearn
+except ImportError:
+    mlflow = None
 
 
 def load_data_from_db() -> pd.DataFrame:
@@ -123,35 +128,38 @@ def train_model() -> Tuple[Pipeline, float, float]:
         ]
     )
 
-    # 5. MLflow Tracking & Fitting
-    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../mlflow.db")).replace("\\", "/")
-    mlflow.set_tracking_uri(f"sqlite:///{db_path}")
-    mlflow.set_experiment("Freelance_Rate_Regressor")
-    
-    logger.info("Fitting model pipeline and logging to MLflow...")
-    with mlflow.start_run() as run:
-        # Fit model
+    # 5. Model Fitting & Optional MLflow Tracking
+    logger.info("Fitting LightGBM model pipeline on training dataset...")
+    if mlflow is not None:
+        try:
+            db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../mlflow.db")).replace("\\", "/")
+            mlflow.set_tracking_uri(f"sqlite:///{db_path}")
+            mlflow.set_experiment("Freelance_Rate_Regressor")
+            with mlflow.start_run() as run:
+                model_pipeline.fit(X_train, y_train)
+                mlflow.log_params(lgbm_params)
+                mlflow.log_param("test_size", 0.2)
+                mlflow.log_param("total_samples", len(df))
+                y_pred = model_pipeline.predict(X_test)
+                rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
+                r2 = float(r2_score(y_test, y_pred))
+                mlflow.log_metric("rmse", rmse)
+                mlflow.log_metric("r2_score", r2)
+                mlflow.sklearn.log_model(model_pipeline, "model_pipeline", serialization_format="pickle")
+                logger.info(f"MLflow Run completed. ID: {run.info.run_id}")
+        except Exception as mlf_err:
+            logger.warning(f"MLflow logging skipped: {mlf_err}")
+            model_pipeline.fit(X_train, y_train)
+            y_pred = model_pipeline.predict(X_test)
+            rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
+            r2 = float(r2_score(y_test, y_pred))
+    else:
         model_pipeline.fit(X_train, y_train)
-
-        # Log parameters
-        mlflow.log_params(lgbm_params)
-        mlflow.log_param("test_size", 0.2)
-        mlflow.log_param("total_samples", len(df))
-
-        # Evaluate model performance
         y_pred = model_pipeline.predict(X_test)
         rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
         r2 = float(r2_score(y_test, y_pred))
 
-        logger.info(f"Evaluation Metrics: RMSE = {rmse:.4f}, R2 = {r2:.4f}")
-
-        # Log metrics
-        mlflow.log_metric("rmse", rmse)
-        mlflow.log_metric("r2_score", r2)
-
-        # Log the trained pipeline model directly to MLflow
-        mlflow.sklearn.log_model(model_pipeline, "model_pipeline", serialization_format="pickle")
-        logger.info(f"MLflow Run completed. ID: {run.info.run_id}")
+    logger.info(f"Evaluation Metrics: RMSE = {rmse:.4f}, R2 = {r2:.4f}")
 
     # 6. Local Serialization
     # Resolve local directory paths
