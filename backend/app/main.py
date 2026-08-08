@@ -57,8 +57,15 @@ async def lifespan(app: FastAPI):
         app.state.rate_predictor = joblib.load(model_path)
         logger.info("Machine learning model pipeline loaded successfully into application state.")
     except Exception as e:
-        logger.error(f"Failed to load ML model artifact during server startup: {e}", exc_info=True)
-        app.state.rate_predictor = None
+        logger.warning(f"Could not load pre-serialized model file ({e}). Automatically training model from Neon database...")
+        try:
+            from app.ml.train import train_model
+            model_pipeline, rmse, r2 = train_model()
+            app.state.rate_predictor = model_pipeline
+            logger.info(f"Machine learning model pipeline trained and loaded successfully into application state (R²: {r2:.4f}).")
+        except Exception as train_err:
+            logger.error(f"Failed to auto-train ML model artifact during server startup: {train_err}", exc_info=True)
+            app.state.rate_predictor = None
 
     yield
 
