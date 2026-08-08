@@ -1,21 +1,12 @@
 import os
 import sys
-import uvicorn
+import spaces
 import gradio as gr
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 # Ensure backend directory is in python search path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-# Safe import for Hugging Face ZeroGPU runtime
-try:
-    import spaces
-except ImportError:
-    class spaces:
-        @staticmethod
-        def GPU(func=None, **kwargs):
-            if func is None:
-                return lambda f: f
-            return func
 
 # Set default production environment variables if not passed
 os.environ.setdefault("DATABASE_URL", "postgresql://neondb_owner:npg_0ECf3HIsFZmc@ep-little-sun-ayfuto9q-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
@@ -23,8 +14,9 @@ os.environ.setdefault("ENV", "production")
 os.environ.setdefault("DEBUG", "false")
 os.environ.setdefault("CORS_ORIGINS", "*")
 
-# Import the existing FastAPI application
+# Import the existing FastAPI application and routers
 from app.main import app as fastapi_app
+from app.api.v1 import predict_router
 
 # Define a ZeroGPU-compatible prediction function for Gradio & Hugging Face
 @spaces.GPU
@@ -85,10 +77,10 @@ with gr.Blocks(title="Freelance Rate Predictor API & UI", theme=gr.themes.Soft()
         outputs=out
     )
 
-# Mount Gradio onto the existing FastAPI application at root
+# Mount FastAPI app onto Gradio Block's app so all API endpoints are accessible
 app = gr.mount_gradio_app(fastapi_app, demo, path="/")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7860))
-    print(f"Starting Gradio + FastAPI on port {port}...")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    print(f"Starting Gradio with ZeroGPU queue on port {port}...")
+    demo.queue().launch(server_name="0.0.0.0", server_port=port)
